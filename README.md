@@ -6,7 +6,7 @@ It allow to set and get the parameters of the clim
 
 ## Installation
 
-Download the latest release from the [release page](https://github.com/romaingallez/clim-cli/releases)
+Download the latest release from the [release page](https://github.com/romaingallez/clim_cli/releases)
 or build it yourself with the following command:
 
 ```bash
