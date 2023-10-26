@@ -28,14 +28,21 @@ func Set_Clim(clim Clim) {
 		RawQuery: query,
 	}
 
+	fmt.Println(u.String())
 	resp, err := http.Get(u.String())
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+	bodyStr := string(body)
 	// fmt.Println(resp.Status, resp.StatusCode)
-	fmt.Printf("Le serveur a répondu\nStatus: %s\n", resp.Status)
+	fmt.Printf("Le serveur a répondu\nStatus: %s\nBody: %s\n", resp.Status, bodyStr)
+	// read the response body
 
 }
 
