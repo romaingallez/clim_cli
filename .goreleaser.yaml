@@ -21,6 +21,11 @@ builds:
       - windows
       - darwin
 
+    ldflags:
+      # - -s -w -X cmd.version={{.Version}} -X cmd.commit={{.Commit}} -X cmd.date={{.Date}} -X cmd.builtBy=goreleaser
+      - -s -w -X 'github.com/romaingallez/clim_cli/cmd.Version={{.Version}}' -X 'github.com/romaingallez/clim_cli/cmd.Commit={{.Commit}}' -X 'github.com/romaingallez/clim_cli/cmd.Date={{.Date}}' -X 'github.com/romaingallez/clim_cli/cmd.BuiltBy=goreleaser'
+      - -extldflags "-static"
+
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.

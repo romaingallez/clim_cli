@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+	BuiltBy = "unknown"
 )
 
 // versionCmd represents the version command
@@ -26,7 +27,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("clim_cli %s, commit %s, built at %s", version, commit, date)
+		fmt.Printf("clim_cli %s, commit %s, built at %s, build by %s\n", Version, Commit, Date, BuiltBy)
 	},
 }
 
