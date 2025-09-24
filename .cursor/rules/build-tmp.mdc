@@ -1,0 +1,13 @@
+---
+description: Build configuration to output binary to ./tmp folder
+globs:
+alwaysApply: true
+---
+
+When building this Go project, use the following command to output the binary to the ./tmp folder:
+
+```bash
+go build -o ./tmp/clim_cli .
+```
+
+This ensures the compiled binary is placed in the ./tmp directory instead of the current directory.
