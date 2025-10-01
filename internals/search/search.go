@@ -78,20 +78,23 @@ func getNetworkAddress(iface *net.Interface) (string, error) {
 // executeArpScan runs the arp-scan command and parses its output
 func executeArpScan(iface string, networkAddr string, timeout int) ([]Device, error) {
 	// Build the arp-scan command
-	cmd := exec.Command("arp-scan", "--localnet", "-x", "--format=${ip};${mac};${vendor}")
+	cmd := exec.Command("arp-scan")
 
-	// switch {
-	// case iface != "" && networkAddr != "":
-	// 	cmd.Args = append(cmd.Args, "-I", iface, "--interface-range", networkAddr)
-	// case iface != "":
-	// 	cmd.Args = append(cmd.Args, "-I", iface)
-	// case networkAddr != "":
-	// 	cmd.Args = append(cmd.Args, "--interface-range", networkAddr)
-	// }
+	switch {
+	case iface != "" && networkAddr != "":
+		// cmd.Args = append(cmd.Args, "-I", iface, "--interface-range", networkAddr)
+		cmd.Args = append(cmd.Args, "-I", iface)
+	case iface != "":
+		cmd.Args = append(cmd.Args, "-I", iface)
+	case networkAddr != "":
+		// search the interface with the network address using the net.InterfaceByName function
+	}
 
 	// Set timeout
 
 	cmd.Args = append(cmd.Args, "--timeout", fmt.Sprintf("%d", timeout))
+
+	cmd.Args = append(cmd.Args, "--localnet", "-x", "--format=${ip};${mac};${vendor}")
 
 	log.Printf("Executing command: %s", strings.Join(cmd.Args, " "))
 

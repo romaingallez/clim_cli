@@ -19,7 +19,8 @@ var getCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(getCmd)
 
-	getCmd.Flags().StringP("ip", "i", "172.17.2.16", "ip")
+	// IP flag is now persistent from root command, but can be overridden locally
+	getCmd.Flags().StringP("ip", "", "", "IP address (overrides global default)")
 
 	// Here you will define your flags and configuration settings.
 

@@ -19,13 +19,13 @@ var setCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(setCmd)
 
-	setCmd.Flags().StringP("ip", "i", "172.17.2.16", "ip")
-	setCmd.Flags().StringP("power", "p", "1", "power")
-	setCmd.Flags().StringP("mode", "m", "4", "mode")
-	setCmd.Flags().StringP("temp", "t", "19.0", "temp")
-	// setCmd.Flags().StringP("shum", "s", "", "shum")
-	setCmd.Flags().StringP("fan_dir", "d", "0", "fan_dir")
-	setCmd.Flags().StringP("fan_rate", "r", "A", "fan_rate")
+	// All flags are now persistent from root command, but can be overridden locally
+	setCmd.Flags().StringP("ip", "", "", "IP address (overrides global default)")
+	setCmd.Flags().StringP("power", "", "", "power setting (overrides global default)")
+	setCmd.Flags().StringP("mode", "", "", "mode setting (overrides global default)")
+	setCmd.Flags().StringP("temp", "", "", "temperature setting (overrides global default)")
+	setCmd.Flags().StringP("fan-dir", "", "", "fan direction (overrides global default)")
+	setCmd.Flags().StringP("fan-rate", "", "", "fan rate (overrides global default)")
 
 	// Here you will define your flags and configuration settings.
 

@@ -2,102 +2,121 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/romaingallez/clim_cli/internals/api"
+	"github.com/romaingallez/clim_cli/internals/config"
 	"github.com/spf13/cobra"
 )
 
 func SetClim(cmd *cobra.Command, args []string) {
-	var err error
-
-	// read flags
-
-	ip, err := cmd.Flags().GetString("ip")
+	// Get configuration with flag overrides
+	climConfig, err := getClimConfigFromFlags(cmd)
 	if err != nil {
-		log.Println(err)
-	}
-
-	power, err := cmd.Flags().GetString("power")
-	if err != nil {
-		log.Println(err)
-	}
-
-	// test if power is 0 or 1 (off or on)
-
-	if power != "0" && power != "1" {
-		fmt.Println("power must be 0 or 1")
+		fmt.Println(err.Error())
 		return
 	}
 
-	mode, err := cmd.Flags().GetString("mode")
-	if err != nil {
-		log.Println(err)
-	}
-
-	// test if mode is between 0 and 4
-
-	if mode != "0" && mode != "1" && mode != "2" && mode != "3" && mode != "4" {
-		fmt.Println("mode must be between 0 and 4")
+	// Validate configuration
+	if err := validateClimConfig(climConfig); err != nil {
+		fmt.Println(err.Error())
 		return
-	}
-
-	temp, err := cmd.Flags().GetString("temp")
-	if err != nil {
-		log.Println(err)
-	}
-
-	// test if temp is between 16.0 and 30.0
-
-	// Convert string to float64
-	num, err := strconv.ParseFloat(temp, 64)
-	if err != nil {
-		fmt.Println("Error converting string to float:", err)
-		return
-	}
-
-	if num < 16.0 || num > 30.0 {
-		fmt.Println("temp must be between 16.0 and 30.0")
-		return
-	}
-
-	fan_dir, err := cmd.Flags().GetString("fan_dir")
-	if err != nil {
-		log.Println(err)
-	}
-
-	fan_rate, err := cmd.Flags().GetString("fan_rate")
-	if err != nil {
-		log.Println(err)
-	}
-
-	// test if fan_rate is not "A"
-	if fan_rate != "A" {
-		// convert string to int
-		num, err := strconv.Atoi(fan_rate)
-		if err != nil {
-			// fmt.Println("Error converting string to int:", err)
-			fmt.Println("fan_rate must be between 3 and 7 or A")
-			return
-		}
-		// if num is not between 3 and 7
-		if num < 3 || num > 7 {
-			fmt.Println("fan_rate must be between 3 and 7 or A")
-			return
-		}
-
 	}
 
 	clim := api.Clim{
-		IP:      ip,
-		Power:   power,
-		Mode:    mode,
-		Temp:    temp,
+		IP:      climConfig.IP,
+		Power:   climConfig.Power,
+		Mode:    climConfig.Mode,
+		Temp:    climConfig.Temp,
 		Shum:    "",
-		FanDir:  fan_dir,
-		FanRate: fan_rate,
+		FanDir:  climConfig.FanDir,
+		FanRate: climConfig.FanRate,
 	}
 
 	api.Set_Clim(clim)
+}
+
+// getClimConfigFromFlags builds a config from flags, using defaults where not provided
+func getClimConfigFromFlags(cmd *cobra.Command) (*config.Config, error) {
+	cfg := &config.Config{}
+
+	// Get values from flags, fall back to config defaults
+	if ip, _ := cmd.Flags().GetString("ip"); ip != "" {
+		cfg.IP = ip
+	} else {
+		cfg.IP = config.GetDefaultIP()
+	}
+
+	if power, _ := cmd.Flags().GetString("power"); power != "" {
+		cfg.Power = power
+	} else {
+		cfg.Power = config.GetDefaultPower()
+	}
+
+	if mode, _ := cmd.Flags().GetString("mode"); mode != "" {
+		cfg.Mode = mode
+	} else {
+		cfg.Mode = config.GetDefaultMode()
+	}
+
+	if temp, _ := cmd.Flags().GetString("temp"); temp != "" {
+		cfg.Temp = temp
+	} else {
+		cfg.Temp = config.GetDefaultTemp()
+	}
+
+	if fanDir, _ := cmd.Flags().GetString("fan-dir"); fanDir != "" {
+		cfg.FanDir = fanDir
+	} else {
+		cfg.FanDir = config.GetDefaultFanDir()
+	}
+
+	if fanRate, _ := cmd.Flags().GetString("fan-rate"); fanRate != "" {
+		cfg.FanRate = fanRate
+	} else {
+		cfg.FanRate = config.GetDefaultFanRate()
+	}
+
+	if name, _ := cmd.Flags().GetString("name"); name != "" {
+		cfg.Name = name
+	} else {
+		cfg.Name = config.GetDefaultName()
+	}
+
+	return cfg, nil
+}
+
+// validateClimConfig validates the climate configuration values
+func validateClimConfig(cfg *config.Config) error {
+	// Validate power
+	if cfg.Power != "0" && cfg.Power != "1" {
+		return fmt.Errorf("power must be 0 or 1")
+	}
+
+	// Validate mode
+	if cfg.Mode != "0" && cfg.Mode != "1" && cfg.Mode != "2" && cfg.Mode != "3" && cfg.Mode != "4" {
+		return fmt.Errorf("mode must be between 0 and 4")
+	}
+
+	// Validate temperature
+	tempNum, err := strconv.ParseFloat(cfg.Temp, 64)
+	if err != nil {
+		return fmt.Errorf("error converting temperature to float: %w", err)
+	}
+	if tempNum < 16.0 || tempNum > 30.0 {
+		return fmt.Errorf("temperature must be between 16.0 and 30.0")
+	}
+
+	// Validate fan rate
+	if cfg.FanRate != "A" {
+		fanNum, err := strconv.Atoi(cfg.FanRate)
+		if err != nil {
+			return fmt.Errorf("fan_rate must be between 3 and 7 or A")
+		}
+		if fanNum < 3 || fanNum > 7 {
+			return fmt.Errorf("fan_rate must be between 3 and 7 or A")
+		}
+	}
+
+	return nil
 }
