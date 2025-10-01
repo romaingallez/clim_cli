@@ -40,48 +40,14 @@ func SetClim(cmd *cobra.Command, args []string) {
 func getClimConfigFromFlags(cmd *cobra.Command) (*config.Config, error) {
 	cfg := &config.Config{}
 
-	// Get values from flags, fall back to config defaults
-	if ip, _ := cmd.Flags().GetString("ip"); ip != "" {
-		cfg.IP = ip
-	} else {
-		cfg.IP = config.GetDefaultIP()
-	}
-
-	if power, _ := cmd.Flags().GetString("power"); power != "" {
-		cfg.Power = power
-	} else {
-		cfg.Power = config.GetDefaultPower()
-	}
-
-	if mode, _ := cmd.Flags().GetString("mode"); mode != "" {
-		cfg.Mode = mode
-	} else {
-		cfg.Mode = config.GetDefaultMode()
-	}
-
-	if temp, _ := cmd.Flags().GetString("temp"); temp != "" {
-		cfg.Temp = temp
-	} else {
-		cfg.Temp = config.GetDefaultTemp()
-	}
-
-	if fanDir, _ := cmd.Flags().GetString("fan-dir"); fanDir != "" {
-		cfg.FanDir = fanDir
-	} else {
-		cfg.FanDir = config.GetDefaultFanDir()
-	}
-
-	if fanRate, _ := cmd.Flags().GetString("fan-rate"); fanRate != "" {
-		cfg.FanRate = fanRate
-	} else {
-		cfg.FanRate = config.GetDefaultFanRate()
-	}
-
-	if name, _ := cmd.Flags().GetString("name"); name != "" {
-		cfg.Name = name
-	} else {
-		cfg.Name = config.GetDefaultName()
-	}
+	// Read values from Viper (flags override config automatically via BindPFlag)
+	cfg.IP = config.GetDefaultIP()
+	cfg.Power = config.GetDefaultPower()
+	cfg.Mode = config.GetDefaultMode()
+	cfg.Temp = config.GetDefaultTemp()
+	cfg.FanDir = config.GetDefaultFanDir()
+	cfg.FanRate = config.GetDefaultFanRate()
+	cfg.Name = config.GetDefaultName()
 
 	return cfg, nil
 }

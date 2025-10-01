@@ -11,7 +11,7 @@ import (
 
 const (
 	AppName        = "clim_cli"
-	ConfigFileName = "config"
+	ConfigFileName = "clim_cli"
 	ConfigFileType = "yaml"
 )
 
@@ -107,7 +107,26 @@ func setDefaults() {
 
 // SaveConfig saves the current configuration to file
 func SaveConfig() error {
-	return viper.WriteConfig()
+	// Try writing to an existing config file
+	if err := viper.WriteConfig(); err != nil {
+		// If no existing config, create the default one
+		dir := configDir
+		if dir == "" {
+			var derr error
+			dir, derr = getConfigDir()
+			if derr != nil {
+				return fmt.Errorf("failed to determine config directory: %w", derr)
+			}
+		}
+		if mkerr := ensureConfigDir(dir); mkerr != nil {
+			return fmt.Errorf("failed to create config directory: %w", mkerr)
+		}
+		path := filepath.Join(dir, ConfigFileName+"."+ConfigFileType)
+		if werr := viper.WriteConfigAs(path); werr != nil {
+			return fmt.Errorf("failed to write config file: %w", werr)
+		}
+	}
+	return nil
 }
 
 // SaveConfigAs saves the current configuration to a specific file
@@ -192,13 +211,22 @@ func SetConfig(cfg *Config) error {
 	})
 }
 
-// BindFlags binds cobra command flags to Viper
+// BindFlags binds cobra command flags to Viper (checks persistent and local)
 func BindFlags(cmd *cobra.Command) {
-	viper.BindPFlag("ip", cmd.PersistentFlags().Lookup("ip"))
-	viper.BindPFlag("name", cmd.PersistentFlags().Lookup("name"))
-	viper.BindPFlag("power", cmd.PersistentFlags().Lookup("power"))
-	viper.BindPFlag("mode", cmd.PersistentFlags().Lookup("mode"))
-	viper.BindPFlag("temp", cmd.PersistentFlags().Lookup("temp"))
-	viper.BindPFlag("fan_dir", cmd.PersistentFlags().Lookup("fan-dir"))
-	viper.BindPFlag("fan_rate", cmd.PersistentFlags().Lookup("fan-rate"))
+	bind := func(key, name string) {
+		if f := cmd.PersistentFlags().Lookup(name); f != nil {
+			viper.BindPFlag(key, f)
+			return
+		}
+		if f := cmd.Flags().Lookup(name); f != nil {
+			viper.BindPFlag(key, f)
+		}
+	}
+	bind("ip", "ip")
+	bind("name", "name")
+	bind("power", "power")
+	bind("mode", "mode")
+	bind("temp", "temp")
+	bind("fan_dir", "fan-dir")
+	bind("fan_rate", "fan-rate")
 }

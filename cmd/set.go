@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"github.com/romaingallez/clim_cli/internals/commands"
+	"github.com/romaingallez/clim_cli/internals/config"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,9 @@ func init() {
 	setCmd.Flags().StringP("temp", "", "", "temperature setting (overrides global default)")
 	setCmd.Flags().StringP("fan-dir", "", "", "fan direction (overrides global default)")
 	setCmd.Flags().StringP("fan-rate", "", "", "fan rate (overrides global default)")
+
+	// Bind local flags as well so they override Viper
+	config.BindFlags(setCmd)
 
 	// Here you will define your flags and configuration settings.
 

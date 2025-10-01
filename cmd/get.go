@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"github.com/romaingallez/clim_cli/internals/commands"
+	"github.com/romaingallez/clim_cli/internals/config"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +22,7 @@ func init() {
 
 	// IP flag is now persistent from root command, but can be overridden locally
 	getCmd.Flags().StringP("ip", "", "", "IP address (overrides global default)")
+	config.BindFlags(getCmd)
 
 	// Here you will define your flags and configuration settings.
 
