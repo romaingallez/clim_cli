@@ -94,7 +94,7 @@ func ensureConfigDir(dir string) error {
 
 // setDefaults sets the default configuration values
 func setDefaults() {
-	viper.SetDefault("ip", "172.17.2.16")
+	viper.SetDefault("ip", "")
 	viper.SetDefault("name", "")
 	viper.SetDefault("power", "1")
 	viper.SetDefault("mode", "4")
@@ -138,6 +138,17 @@ func SaveConfigAs(filename string) error {
 func LoadConfig(filename string) error {
 	viper.SetConfigName(filename)
 	return viper.ReadInConfig()
+}
+
+// SaveACManufacturerMACs persists the AC manufacturer MAC addresses to config
+func SaveACManufacturerMACs(macs []string) error {
+	viper.Set("ac_manufacturer_macs", macs)
+	return SaveConfig()
+}
+
+// GetACManufacturerMACs retrieves stored AC manufacturer MAC addresses
+func GetACManufacturerMACs() ([]string, error) {
+	return viper.GetStringSlice("ac_manufacturer_macs"), nil
 }
 
 // GetDefaultIP returns the default IP address

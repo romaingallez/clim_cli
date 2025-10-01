@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/romaingallez/clim_cli/internals/api"
 	"github.com/romaingallez/clim_cli/internals/config"
@@ -22,8 +24,25 @@ func GetClim(cmd *cobra.Command, args []string) {
 		ip = config.GetDefaultIP()
 	}
 
-	basicInfo := api.GetBasicInfo(ip)
-	controlInfo := api.GetControlInfo(ip)
+	if ip == "" {
+		fmt.Println("No IP configured. Use --ip, or run 'clim_cli search --tui' or 'clim_cli browse' to select a device.")
+		return
+	}
 
-	fmt.Printf("Basic info: %+v\nControl Info: %+v\n", basicInfo, controlInfo)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	basicInfo, berr := api.FetchBasicInfo(ctx, ip)
+	controlInfo, cerr := api.FetchControlInfo(ctx, ip)
+	if berr != nil {
+		fmt.Printf("Failed to fetch basic_info from %s: %v\n", ip, berr)
+	}
+	if cerr != nil {
+		fmt.Printf("Failed to fetch control_info from %s: %v\n", ip, cerr)
+	}
+	if berr == nil {
+		fmt.Printf("Basic info: %+v\n", basicInfo)
+	}
+	if cerr == nil {
+		fmt.Printf("Control Info: %+v\n", controlInfo)
+	}
 }

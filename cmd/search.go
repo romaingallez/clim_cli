@@ -15,10 +15,14 @@ import (
 var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "search for climate devices on the network",
-	Long: `Search for climate devices on the local network using network discovery.
+	Long: `Search for climate devices on the local network using arp-scan.
 
 This command discovers climate devices, saves them to local storage with historical
 tracking, and optionally launches an interactive TUI for device selection.
+
+Notes:
+- Requires arp-scan (Debian/Ubuntu: apt-get install arp-scan; macOS: brew install arp-scan)
+- Workers control parallel HTTP info fetches; arp-scan itself runs once
 
 Devices are stored with timestamps to track changes over time. Use --tui flag
 for interactive selection sorted by device name.`,

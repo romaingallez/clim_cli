@@ -4,46 +4,23 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 )
 
-func Set_Clim(clim Clim) {
-	// Manually build the query string to preserve order
-	query := fmt.Sprintf("pow=%s&stemp=%s&mode=%s&shum=%s&f_rate=%s&f_dir=%s",
-		url.QueryEscape(clim.Power),
-		url.QueryEscape(clim.Temp),
-		url.QueryEscape(clim.Mode),
-		url.QueryEscape(clim.Shum),
-		url.QueryEscape(clim.FanRate),
-		url.QueryEscape(clim.FanDir),
-	)
-
-	// create an url.Url with clim.IP as host and "/set_control_info" as path
-	u := &url.URL{
-		Scheme:   "http",
-		Host:     clim.IP,
-		Path:     "aircon/set_control_info",
-		RawQuery: query,
-	}
-
-	fmt.Println(u.String())
-	resp, err := http.Get(u.String())
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	bodyStr := string(body)
-	fmt.Printf("Le serveur a répondu\nStatus: %s\nBody: %s\n", resp.Status, bodyStr)
+var httpClient = &http.Client{
+	Timeout: 4 * time.Second,
+	Transport: &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         (&net.Dialer{Timeout: 3 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		TLSHandshakeTimeout: 3 * time.Second,
+		MaxIdleConns:        100,
+		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConnsPerHost: 10,
+	},
 }
 
 // SetClim performs a control update with context and returns an error on failure.
@@ -61,10 +38,12 @@ func SetClim(ctx context.Context, clim Clim) error {
 	if err != nil {
 		return err
 	}
-	client := &http.Client{Timeout: 4 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
+	}
+	if resp == nil {
+		return fmt.Errorf("nil http response")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -74,44 +53,19 @@ func SetClim(ctx context.Context, clim Clim) error {
 	return nil
 }
 
-// GetControlInfo fetches control info from the given IP and returns it as a map.
-func GetControlInfo(ip string) map[string]string {
-	urlStr := fmt.Sprintf("http://%s/aircon/get_control_info", ip)
-	resp, err := http.Get(urlStr)
-	if err != nil {
-		fmt.Printf("Error connecting to %s: %v\n", ip, err)
-		return nil
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Error reading response from %s: %v\n", ip, err)
-		return nil
-	}
-
-	pairs := strings.Split(string(body), ",")
-	parsedResponse := make(map[string]string)
-	for _, pair := range pairs {
-		kv := strings.Split(pair, "=")
-		if len(kv) == 2 {
-			parsedResponse[kv[0]] = kv[1]
-		}
-	}
-	return parsedResponse
-}
-
-// FetchControlInfo is a context-aware variant returning an error on failure.
+// FetchControlInfo fetches control info using context and returns a parsed map.
 func FetchControlInfo(ctx context.Context, ip string) (map[string]string, error) {
 	urlStr := fmt.Sprintf("http://%s/aircon/get_control_info", ip)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
 	if err != nil {
 		return nil, err
 	}
-	client := &http.Client{Timeout: 4 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if resp == nil {
+		return nil, fmt.Errorf("nil http response")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -133,22 +87,29 @@ func FetchControlInfo(ctx context.Context, ip string) (map[string]string, error)
 	return parsedResponse, nil
 }
 
-// GetBasicInfo fetches basic info from the given IP and returns it as a map.
-func GetBasicInfo(ip string) map[string]string {
+// FetchBasicInfo fetches basic info using context and returns a parsed map.
+func FetchBasicInfo(ctx context.Context, ip string) (map[string]string, error) {
 	urlStr := fmt.Sprintf("http://%s/common/basic_info", ip)
-	resp, err := http.Get(urlStr)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
 	if err != nil {
-		fmt.Printf("Error connecting to %s: %v\n", ip, err)
-		return nil
+		return nil, err
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, fmt.Errorf("nil http response")
 	}
 	defer resp.Body.Close()
-
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("http %d: %s", resp.StatusCode, string(b))
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading response from %s: %v\n", ip, err)
-		return nil
+		return nil, err
 	}
-
 	pairs := strings.Split(string(body), ",")
 	parsedResponse := make(map[string]string)
 	for _, pair := range pairs {
@@ -162,11 +123,25 @@ func GetBasicInfo(ip string) map[string]string {
 			}
 		}
 	}
-	return parsedResponse
+	return parsedResponse, nil
+}
+
+// Legacy helpers (deprecated): retained for backward-compatibility
+func GetControlInfo(ip string) map[string]string {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	m, _ := FetchControlInfo(ctx, ip)
+	return m
+}
+
+func GetBasicInfo(ip string) map[string]string {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	m, _ := FetchBasicInfo(ctx, ip)
+	return m
 }
 
 // unquote is a simple function to decode URL-encoded strings.
-// In the Python code, it used `unquote`. Here, we're using Go's native function.
 func unquote(s string) string {
 	res, err := url.QueryUnescape(s)
 	if err != nil {

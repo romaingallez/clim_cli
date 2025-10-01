@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/romaingallez/clim_cli/internals/config"
 	"github.com/romaingallez/clim_cli/internals/search"
@@ -26,7 +27,19 @@ func SearchClim(cmd *cobra.Command, args []string) {
 	// Use fuzzy search for "*murata*" pattern and save AC manufacturer MACs to config
 	devices, err := search.FuzzySearchDevices(ifaceName, timeout, workers, "murata")
 	if err != nil {
-		log.Fatalf("Error searching for devices: %v", err)
+		msg := err.Error()
+		if strings.Contains(msg, "arp-scan is not installed") {
+			fmt.Println("arp-scan not found. Install it first:")
+			fmt.Println("  Debian/Ubuntu: sudo apt-get install arp-scan")
+			fmt.Println("  macOS (Homebrew): brew install arp-scan")
+			return
+		}
+		if strings.Contains(msg, "interface") && strings.Contains(msg, "not found") {
+			fmt.Printf("Network interface '%s' not found. Use --iface to choose a valid interface.\n", ifaceName)
+			return
+		}
+		fmt.Printf("Search failed: %v\n", err)
+		return
 	}
 
 	if len(devices) == 0 {
@@ -95,7 +108,7 @@ func SearchClim(cmd *cobra.Command, args []string) {
 	}
 
 	// Display saved AC manufacturer MACs from config
-	macs, err := search.GetACManufacturerMACs()
+	macs, err := config.GetACManufacturerMACs()
 	if err != nil {
 		log.Printf("Warning: Could not retrieve saved AC manufacturer MACs: %v", err)
 	} else if len(macs) > 0 {

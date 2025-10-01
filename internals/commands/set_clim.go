@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/romaingallez/clim_cli/internals/api"
 	"github.com/romaingallez/clim_cli/internals/config"
@@ -14,6 +16,12 @@ func SetClim(cmd *cobra.Command, args []string) {
 	climConfig, err := getClimConfigFromFlags(cmd)
 	if err != nil {
 		fmt.Println(err.Error())
+		return
+	}
+
+	// Validate IP guidance when empty
+	if climConfig.IP == "" {
+		fmt.Println("No IP configured. Use --ip, or run 'clim_cli search --tui' or 'clim_cli browse' to select a device.")
 		return
 	}
 
@@ -33,7 +41,13 @@ func SetClim(cmd *cobra.Command, args []string) {
 		FanRate: climConfig.FanRate,
 	}
 
-	api.Set_Clim(clim)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := api.SetClim(ctx, clim); err != nil {
+		fmt.Printf("Failed to apply settings to %s: %v\n", clim.IP, err)
+		return
+	}
+	fmt.Printf("Settings applied to %s\n", clim.IP)
 }
 
 // getClimConfigFromFlags builds a config from flags, using defaults where not provided

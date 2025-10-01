@@ -2,17 +2,18 @@ package search
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/romaingallez/clim_cli/internals/api"
-	"github.com/spf13/viper"
+	"github.com/romaingallez/clim_cli/internals/config"
 )
 
 // Device represents a found climate device
@@ -34,6 +35,11 @@ func SearchDevices(ifaceString string, timeout int, workers int) ([]Device, erro
 	iface, err := net.InterfaceByName(ifaceString)
 	if err != nil {
 		return nil, fmt.Errorf("interface %s not found: %v", ifaceString, err)
+	}
+
+	// Quick preflight for arp-scan
+	if _, err := exec.LookPath("arp-scan"); err != nil {
+		return nil, fmt.Errorf("arp-scan is not installed or not in PATH: %w", err)
 	}
 
 	// Get the network address for the interface
@@ -82,18 +88,14 @@ func executeArpScan(iface string, networkAddr string, timeout int) ([]Device, er
 
 	switch {
 	case iface != "" && networkAddr != "":
-		// cmd.Args = append(cmd.Args, "-I", iface, "--interface-range", networkAddr)
 		cmd.Args = append(cmd.Args, "-I", iface)
 	case iface != "":
 		cmd.Args = append(cmd.Args, "-I", iface)
 	case networkAddr != "":
-		// search the interface with the network address using the net.InterfaceByName function
+		// Could derive interface from CIDR if needed
 	}
 
-	// Set timeout
-
 	cmd.Args = append(cmd.Args, "--timeout", fmt.Sprintf("%d", timeout))
-
 	cmd.Args = append(cmd.Args, "--localnet", "-x", "--format=${ip};${mac};${vendor}")
 
 	log.Printf("Executing command: %s", strings.Join(cmd.Args, " "))
@@ -175,30 +177,42 @@ func FuzzySearchDevices(ifaceString string, timeout int, workers int, pattern st
 	// Filter devices using fuzzy search
 	filteredDevices := fuzzyFilter(devices, pattern)
 
-	// Get clim info for each filtered device
+	// Parallel fetch basic/control info per device with worker cap
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
 	for i := range filteredDevices {
-		device := &filteredDevices[i]
-		log.Printf("Getting clim info for device %s", device.IP)
-
-		// Get basic info
-		basicInfo := api.GetBasicInfo(device.IP)
-		if basicInfo != nil {
-			device.BasicInfo = basicInfo
-			// Update device name from basic info if available
-			if name, exists := basicInfo["name"]; exists && name != "" {
-				device.Name = name
+		i := i
+		wg.Add(1)
+		sem <- struct{}{}
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			log.Printf("Getting clim info for device %s", filteredDevices[i].IP)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+			defer cancel()
+			basicInfo, berr := api.FetchBasicInfo(ctx, filteredDevices[i].IP)
+			if berr == nil {
+				filteredDevices[i].BasicInfo = basicInfo
+				if name, ok := basicInfo["name"]; ok && name != "" {
+					filteredDevices[i].Name = name
+				}
 			}
-		}
+			controlInfo, cerr := api.FetchControlInfo(ctx, filteredDevices[i].IP)
+			if cerr == nil {
+				filteredDevices[i].ControlInfo = controlInfo
+			}
+		}()
+	}
+	wg.Wait()
 
-		// Get control info
-		controlInfo := api.GetControlInfo(device.IP)
-		if controlInfo != nil {
-			device.ControlInfo = controlInfo
+	// Save AC manufacturer MACs to config via central config package
+	var acMACs []string
+	for _, d := range filteredDevices {
+		if strings.Contains(strings.ToLower(d.Name), "murata") {
+			acMACs = append(acMACs, d.MAC)
 		}
 	}
-
-	// Save AC manufacturer MACs to config
-	if err := saveACManufacturerMACs(filteredDevices); err != nil {
+	if err := config.SaveACManufacturerMACs(acMACs); err != nil {
 		log.Printf("Warning: Failed to save AC manufacturer MACs to config: %v", err)
 	}
 
@@ -220,87 +234,4 @@ func fuzzyFilter(devices []Device, pattern string) []Device {
 	}
 
 	return filtered
-}
-
-// initializeViperConfig initializes Viper with the correct config path
-func initializeViperConfig() (string, error) {
-	// Initialize Viper
-	viper.SetConfigName("clim_cli")
-	viper.SetConfigType("yaml")
-
-	// Set config path to user's home directory
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get user home directory: %v", err)
-	}
-
-	configDir := filepath.Join(homeDir, ".config", "clim_cli")
-	viper.AddConfigPath(configDir)
-
-	return configDir, nil
-}
-
-// saveACManufacturerMACs saves AC manufacturer MAC addresses to Viper config
-func saveACManufacturerMACs(devices []Device) error {
-	configDir, err := initializeViperConfig()
-	if err != nil {
-		return err
-	}
-
-	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %v", err)
-	}
-
-	// Set the config file path explicitly
-	configFile := filepath.Join(configDir, "clim_cli.yaml")
-	viper.SetConfigFile(configFile)
-
-	// Try to read existing config
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return fmt.Errorf("failed to read config file: %v", err)
-		}
-		// Config file doesn't exist, that's okay - we'll create it
-		log.Printf("Config file doesn't exist, will create new one at: %s", configFile)
-	}
-
-	// Extract AC manufacturer MACs (devices with "murata" in name)
-	var acMACs []string
-	for _, device := range devices {
-		if strings.Contains(strings.ToLower(device.Name), "murata") {
-			acMACs = append(acMACs, device.MAC)
-		}
-	}
-
-	// Save AC manufacturer MACs to config
-	viper.Set("ac_manufacturer_macs", acMACs)
-
-	// Write config file (this will create the file if it doesn't exist)
-	if err := viper.WriteConfig(); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-
-	log.Printf("Saved %d AC manufacturer MAC addresses to config", len(acMACs))
-	return nil
-}
-
-// GetACManufacturerMACs retrieves AC manufacturer MAC addresses from config
-func GetACManufacturerMACs() ([]string, error) {
-	_, err := initializeViperConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Try to read config
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return []string{}, nil // No config file, return empty slice
-		}
-		return nil, fmt.Errorf("failed to read config file: %v", err)
-	}
-
-	// Get AC manufacturer MACs
-	macs := viper.GetStringSlice("ac_manufacturer_macs")
-	return macs, nil
 }
