@@ -108,7 +108,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.devices = devices
 				m.err = nil
 				if m.cursor >= len(m.devices) {
-					m.cursor = len(m.devices) - 1
+					if len(m.devices) > 0 {
+						m.cursor = len(m.devices) - 1
+					} else {
+						m.cursor = 0
+					}
 				}
 			}
 		}

@@ -1,0 +1,15 @@
+Control TUI keybindings:
+- Tab / Shift+Tab: move focus across fields and device list
+- Up/Down or k/j: move in device list or adjust temp when focused
+- Left/Right: cycle on focused enum fields
+- p: toggle power
+- m: cycle mode
+- + / -: inc/dec temp (16..30)
+- f: cycle fan rate (A,3..7)
+- d: cycle fan dir (0,1,2,3,4,A)
+- r: refresh live status
+- a: apply staged settings to all selected devices (confirmation required)
+- y / n: confirm/cancel in modal
+- h: toggle help overlay
+- Esc: close overlays
+- q: quit
