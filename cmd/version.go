@@ -1,46 +1,66 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 GALLEZ Romain
 */
 package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/romaingallez/clim_cli/internals/version"
 	"github.com/spf13/cobra"
-)
-
-var (
-	Version = "dev"
-	Commit  = "none"
-	Date    = "unknown"
-	BuiltBy = "unknown"
 )
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Print version information",
+	Long: `Print detailed version information including:
+- Version number (semantic versioning)
+- Git commit hash
+- Build date
+- Go version used for compilation
+- Platform (OS/Architecture)
+- Build type (release, development, pre-release)`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("clim_cli %s, commit %s, built at %s, build by %s\n", Version, Commit, Date, BuiltBy)
+		v := version.Get()
+
+		// Check for JSON output flag
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+		shortOutput, _ := cmd.Flags().GetBool("short")
+
+		if jsonOutput {
+			fmt.Printf(`{
+  "version": "%s",
+  "git_commit": "%s",
+  "build_date": "%s",
+  "go_version": "%s",
+  "platform": "%s",
+  "build_type": "%s"
+}`, v.Version, v.GitCommit, v.BuildDate, v.GoVersion, v.Platform, v.GetBuildType())
+			return
+		}
+
+		if shortOutput {
+			fmt.Println(v.Short())
+			return
+		}
+
+		// Full output
+		fmt.Println(v.String())
+		fmt.Printf("Build Type: %s\n", v.GetBuildType())
+
+		// Show warning for development builds
+		if v.IsDev() {
+			fmt.Fprintf(os.Stderr, "\n⚠️  Warning: This is a development build\n")
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// versionCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// versionCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Add flags for different output formats
+	versionCmd.Flags().BoolP("json", "j", false, "Output version information in JSON format")
+	versionCmd.Flags().BoolP("short", "s", false, "Output only the version number")
 }

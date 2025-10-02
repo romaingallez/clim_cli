@@ -1,12 +1,14 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 GALLEZ Romain
 */
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/romaingallez/clim_cli/internals/config"
+	"github.com/romaingallez/clim_cli/internals/version"
 	"github.com/spf13/cobra"
 )
 
@@ -15,8 +17,17 @@ var rootCmd = &cobra.Command{
 	Use:   "clim_cli",
 	Short: "CLI TOOL TO MANAGE CLIM AT WORK",
 	Long:  `A golang CLI tool to manage clim at work, using cobra and viper`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Run: func(cmd *cobra.Command, args []string) {
+		// Check if version flag is set
+		if showVersion, _ := cmd.Flags().GetBool("version"); showVersion {
+			v := version.Get()
+			fmt.Println(v.Short())
+			return
+		}
+
+		// If no subcommand and no version flag, show help
+		cmd.Help()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -43,6 +54,9 @@ func init() {
 	rootCmd.PersistentFlags().StringP("temp", "t", "", "default temperature setting")
 	rootCmd.PersistentFlags().StringP("fan-dir", "d", "", "default fan direction")
 	rootCmd.PersistentFlags().StringP("fan-rate", "r", "", "default fan rate")
+
+	// Version flag
+	rootCmd.Flags().BoolP("version", "v", false, "Print version information")
 
 	// Bind flags to Viper
 	config.BindFlags(rootCmd)
