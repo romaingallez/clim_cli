@@ -55,6 +55,7 @@ func getClimConfigFromFlags(cmd *cobra.Command) (*config.Config, error) {
 	cfg := &config.Config{}
 
 	// Read values from Viper (flags override config automatically via BindPFlag)
+	// Viper automatically handles flag overrides when flags are bound with BindPFlag
 	cfg.IP = config.GetDefaultIP()
 	cfg.Power = config.GetDefaultPower()
 	cfg.Mode = config.GetDefaultMode()
