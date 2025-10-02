@@ -83,18 +83,18 @@ changelog:
 #           - network
 #           - network-bind
 
-# Homebrew (optional)
-brews:
-  - name: clim_cli
-    description: CLI TOOL TO MANAGE CLIM AT WORK
-    homepage: https://github.com/romaingallez/clim_cli
-    license: MIT
-    skip_upload: auto
+# # Homebrew (optional)
+# brews:
+#   - name: clim_cli
+#     description: CLI TOOL TO MANAGE CLIM AT WORK
+#     homepage: https://github.com/romaingallez/clim_cli
+#     license: MIT
+#     skip_upload: auto
 
-# Scoop (optional)
-scoops:
-  - name: clim_cli
-    description: CLI TOOL TO MANAGE CLIM AT WORK
-    homepage: https://github.com/romaingallez/clim_cli
-    license: MIT
-    skip_upload: auto
+# # Scoop (optional)
+# scoops:
+#   - name: clim_cli
+#     description: CLI TOOL TO MANAGE CLIM AT WORK
+#     homepage: https://github.com/romaingallez/clim_cli
+#     license: MIT
+#     skip_upload: auto
