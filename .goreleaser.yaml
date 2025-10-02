@@ -1,10 +1,12 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
+# .goreleaser.yaml for clim_cli
 # Make sure to check the documentation at https://goreleaser.com
 
 # The lines bellow are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/need to use them.
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+project_name: clim_cli
 
 before:
   hooks:
@@ -13,37 +15,86 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 
+# Build configuration
 builds:
-  - env:
+  - id: clim_cli
+    binary: clim_cli
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
       - darwin
-
+    goarch:
+      - amd64
+      - arm64
     ldflags:
-      # - -s -w -X cmd.version={{.Version}} -X cmd.commit={{.Commit}} -X cmd.date={{.Date}} -X cmd.builtBy=goreleaser
-      - -s -w -X 'github.com/romaingallez/clim_cli/cmd.Version={{.Version}}' -X 'github.com/romaingallez/clim_cli/cmd.Commit={{.Commit}}' -X 'github.com/romaingallez/clim_cli/cmd.Date={{.Date}}' -X 'github.com/romaingallez/clim_cli/cmd.BuiltBy=goreleaser'
+      - -s -w
+      - -X 'github.com/romaingallez/clim_cli/internals/version.Version={{.Version}}'
+      - -X 'github.com/romaingallez/clim_cli/internals/version.GitCommit={{.Commit}}'
+      - -X 'github.com/romaingallez/clim_cli/internals/version.BuildDate={{.Date}}'
       - -extldflags "-static"
+    main: .
 
+# Archive configuration
 archives:
   - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- title .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
     # use zip for windows archives
     format_overrides:
       - goos: windows
         format: zip
 
+# Checksums
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+
+# GitHub release
+release:
+  github:
+    owner: romaingallez
+    name: clim_cli
+  draft: false
+  prerelease: auto
+
+# Changelog
 changelog:
   sort: asc
   filters:
     exclude:
       - "^docs:"
       - "^test:"
+
+# Snapcraft (optional)
+# snapcrafts:
+#   - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.snap"
+#     summary: CLI TOOL TO MANAGE CLIM AT WORK
+#     description: |
+#       A golang CLI tool to manage clim at work, using cobra and viper
+#     grade: stable
+#     confinement: strict
+#     apps:
+#       clim_cli:
+#         command: clim_cli
+#         plugs:
+#           - network
+#           - network-bind
+
+# Homebrew (optional)
+brews:
+  - name: clim_cli
+    description: CLI TOOL TO MANAGE CLIM AT WORK
+    homepage: https://github.com/romaingallez/clim_cli
+    license: MIT
+    skip_upload: auto
+
+# Scoop (optional)
+scoops:
+  - name: clim_cli
+    description: CLI TOOL TO MANAGE CLIM AT WORK
+    homepage: https://github.com/romaingallez/clim_cli
+    license: MIT
+    skip_upload: auto
