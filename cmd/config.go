@@ -29,7 +29,13 @@ var configShowCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		configFilePath := config.GetConfigFilePath()
+		if configFilePath == "" {
+			configFilePath = "No config file found (using defaults)"
+		}
+
 		fmt.Println("Current Configuration:")
+		fmt.Printf("Config File: %s\n", configFilePath)
 		fmt.Printf("IP: %s\n", cfg.IP)
 		fmt.Printf("Name: %s\n", cfg.Name)
 		fmt.Printf("Power: %s\n", cfg.Power)

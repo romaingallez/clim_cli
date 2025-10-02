@@ -73,6 +73,11 @@ func GetConfigDir() string {
 	return configDir
 }
 
+// GetConfigFilePath returns the path to the currently used config file
+func GetConfigFilePath() string {
+	return viper.ConfigFileUsed()
+}
+
 // getConfigDir returns the appropriate config directory for the platform
 func getConfigDir() (string, error) {
 	if dir := os.Getenv("CLIM_CLI_CONFIG_DIR"); dir != "" {
