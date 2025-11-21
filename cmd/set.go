@@ -25,7 +25,7 @@ func init() {
 	setCmd.Flags().StringP("power", "", "", "power setting (overrides global default)")
 	setCmd.Flags().StringP("mode", "", "", "mode setting (overrides global default)")
 	setCmd.Flags().StringP("temp", "", "", "temperature setting (overrides global default)")
-	setCmd.Flags().StringP("fan-dir", "", "", "fan direction (overrides global default)")
+	setCmd.Flags().StringP("fan-dir", "", "", "fan direction: 0=all wings stopped, 1=vertical, 2=horizontal, 3=both (overrides global default)")
 	setCmd.Flags().StringP("fan-rate", "", "", "fan rate (overrides global default)")
 
 	// Bind local flags as well so they override Viper

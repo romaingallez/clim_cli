@@ -52,7 +52,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("power", "p", "", "default power setting")
 	rootCmd.PersistentFlags().StringP("mode", "m", "", "default mode setting")
 	rootCmd.PersistentFlags().StringP("temp", "t", "", "default temperature setting")
-	rootCmd.PersistentFlags().StringP("fan-dir", "d", "", "default fan direction")
+	rootCmd.PersistentFlags().StringP("fan-dir", "d", "", "default fan direction (0=all wings stopped, 1=vertical, 2=horizontal, 3=both)")
 	rootCmd.PersistentFlags().StringP("fan-rate", "r", "", "default fan rate")
 
 	// Version flag

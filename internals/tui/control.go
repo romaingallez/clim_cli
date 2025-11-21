@@ -220,7 +220,7 @@ func (m *controlModel) cycleFanRate(forward bool) {
 }
 
 func (m *controlModel) cycleFanDir(forward bool) {
-	seq := []string{"0", "1", "2", "3", "4", "A"}
+	seq := []string{"0", "1", "2", "3"}
 	m.pending.FanDir = cycle(seq, m.pending.FanDir, forward)
 }
 
